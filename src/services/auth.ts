@@ -1,5 +1,6 @@
 // src/services/auth.ts
 import { auth } from "./firebase";
+import { TwoFactorService } from "./twoFactor";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -24,7 +25,7 @@ export interface LoginCredentials {
 export interface SignupCredentials {
   email: string;
   password: string;
-  confirmPassword: string; 
+  confirmPassword: string;
 }
 
 export class AuthService {
@@ -82,11 +83,13 @@ export class AuthService {
       credentials.password
     );
 
+    const email = userCred.user.email || credentials.email;
+    const needsSetup = TwoFactorService.isSetupRequired(email);
     const session: UserSession = {
-      email: userCred.user.email || credentials.email,
+      email,
       isAuthenticated: true,
-      needs2FASetup: false, // assume already setup
-      needs2FAVerification: false, // future: Firebase MFA verification
+      needs2FASetup: needsSetup,
+      needs2FAVerification: !needsSetup,
     };
 
     this.saveSession(session);
@@ -98,11 +101,13 @@ export class AuthService {
     const provider = new GoogleAuthProvider();
     const result = await signInWithPopup(auth, provider);
 
+    const email = result.user.email || "unknown@google.com";
+    const needsSetup = isSignup ? true : TwoFactorService.isSetupRequired(email);
     const session: UserSession = {
-      email: result.user.email || "unknown@google.com",
+      email,
       isAuthenticated: true,
-      needs2FASetup: isSignup,
-      needs2FAVerification: !isSignup,
+      needs2FASetup: needsSetup,
+      needs2FAVerification: !needsSetup,
     };
 
     this.saveSession(session);

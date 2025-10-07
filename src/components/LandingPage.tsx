@@ -70,28 +70,12 @@ export const LandingPage: React.FC = () => {
                 View Demo
               </Button>
             </div>
-
-            {/* Trust Indicators */}
-            <div className="flex flex-wrap gap-4 pt-4">
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <CheckCircle className="w-4 h-4 text-green-600" />
-                <span>HIPAA Compliant</span>
-              </div>
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <CheckCircle className="w-4 h-4 text-green-600" />
-                <span>Real-Time Results</span>
-              </div>
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <CheckCircle className="w-4 h-4 text-green-600" />
-                <span>FDA Compliant</span>
-              </div>
-            </div>
           </div>
 
           <div className="relative">
             <div className="relative z-10">
               <ImageWithFallback
-                src="https://images.unsplash.com/photo-1682663947127-ac9d59d7f312?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwY29sb25vc2NvcHklMjBlcXVpcG1lbnQlMjBtb2Rlcm58ZW58MXx8fHwxNzU4NTk2NjM3fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+                src="/assets/crc_page.jpg"
                 alt="Medical colonoscopy equipment"
                 className="rounded-2xl shadow-2xl w-full h-[400px] object-cover"
               />

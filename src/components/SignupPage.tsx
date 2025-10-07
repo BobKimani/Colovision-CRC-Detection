@@ -5,6 +5,7 @@ import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Alert, AlertDescription } from './ui/alert';
 import { Checkbox } from './ui/checkbox';
+import type { CheckedState } from '@radix-ui/react-checkbox';
 import { useRouter, useAuth } from '../routes/Router';
 import { AuthService } from '../services/auth';
 import { Eye, EyeOff, ArrowLeft, Shield } from 'lucide-react';
@@ -45,7 +46,7 @@ export const SignupPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const session = await AuthService.signup({ email, password });
+      const session = await AuthService.signup({ email, password, confirmPassword });
       setUser(session);
       navigate('/2fa-setup');
     } catch (err) {
@@ -148,24 +149,24 @@ export const SignupPage: React.FC = () => {
                   <div className="space-y-1">
                     <div className="text-xs text-gray-600">Password requirements:</div>
                     <div className="grid grid-cols-2 gap-1 text-xs">
-                      <div className={`flex items-center space-x-1 ${passwordValidation.minLength ? 'text-green-600' : 'text-gray-400'}`}>
-                        <div className={`w-1 h-1 rounded-full ${passwordValidation.minLength ? 'bg-green-600' : 'bg-gray-400'}`} />
+                    <div className={`flex items-center space-x-1 ${passwordValidation.checks.minLength ? 'text-green-600' : 'text-gray-400'}`}>
+                        <div className={`w-1 h-1 rounded-full ${passwordValidation.checks.minLength ? 'bg-green-600' : 'bg-gray-400'}`} />
                         <span>8+ characters</span>
                       </div>
-                      <div className={`flex items-center space-x-1 ${passwordValidation.hasUpperCase ? 'text-green-600' : 'text-gray-400'}`}>
-                        <div className={`w-1 h-1 rounded-full ${passwordValidation.hasUpperCase ? 'bg-green-600' : 'bg-gray-400'}`} />
+                      <div className={`flex items-center space-x-1 ${passwordValidation.checks.hasUpperCase ? 'text-green-600' : 'text-gray-400'}`}>
+                        <div className={`w-1 h-1 rounded-full ${passwordValidation.checks.hasUpperCase ? 'bg-green-600' : 'bg-gray-400'}`} />
                         <span>Uppercase</span>
                       </div>
-                      <div className={`flex items-center space-x-1 ${passwordValidation.hasLowerCase ? 'text-green-600' : 'text-gray-400'}`}>
-                        <div className={`w-1 h-1 rounded-full ${passwordValidation.hasLowerCase ? 'bg-green-600' : 'bg-gray-400'}`} />
+                      <div className={`flex items-center space-x-1 ${passwordValidation.checks.hasLowerCase ? 'text-green-600' : 'text-gray-400'}`}>
+                        <div className={`w-1 h-1 rounded-full ${passwordValidation.checks.hasLowerCase ? 'bg-green-600' : 'bg-gray-400'}`} />
                         <span>Lowercase</span>
                       </div>
-                      <div className={`flex items-center space-x-1 ${passwordValidation.hasNumbers ? 'text-green-600' : 'text-gray-400'}`}>
-                        <div className={`w-1 h-1 rounded-full ${passwordValidation.hasNumbers ? 'bg-green-600' : 'bg-gray-400'}`} />
+                      <div className={`flex items-center space-x-1 ${passwordValidation.checks.hasNumbers ? 'text-green-600' : 'text-gray-400'}`}>
+                        <div className={`w-1 h-1 rounded-full ${passwordValidation.checks.hasNumbers ? 'bg-green-600' : 'bg-gray-400'}`} />
                         <span>Numbers</span>
                       </div>
-                      <div className={`flex items-center space-x-1 col-span-2 ${passwordValidation.hasSpecialChar ? 'text-green-600' : 'text-gray-400'}`}>
-                        <div className={`w-1 h-1 rounded-full ${passwordValidation.hasSpecialChar ? 'bg-green-600' : 'bg-gray-400'}`} />
+                      <div className={`flex items-center space-x-1 col-span-2 ${passwordValidation.checks.hasSpecialChar ? 'text-green-600' : 'text-gray-400'}`}>
+                        <div className={`w-1 h-1 rounded-full ${passwordValidation.checks.hasSpecialChar ? 'bg-green-600' : 'bg-gray-400'}`} />
                         <span>Special characters</span>
                       </div>
                     </div>
@@ -208,7 +209,7 @@ export const SignupPage: React.FC = () => {
                 <Checkbox
                   id="terms"
                   checked={agreeToTerms}
-                  onCheckedChange={(checked) => setAgreeToTerms(checked as boolean)}
+                  onCheckedChange={(checked: CheckedState) => setAgreeToTerms(checked === true)}
                 />
                 <Label htmlFor="terms" className="text-sm text-gray-600">
                   I agree to the{' '}
