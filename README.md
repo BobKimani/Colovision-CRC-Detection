@@ -46,11 +46,28 @@ cd Colovision-CRC-Detection
 npm install
 ```
 
-3. Set up environment variables:
+3. Set up Firebase environment variables:
+Create a `.env.local` file in the root directory with your Firebase configuration:
 ```bash
-cp .env.example .env
-# Edit .env with your Firebase configuration
+# Firebase Configuration
+VITE_FIREBASE_API_KEY=your_api_key_here
+VITE_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+VITE_FIREBASE_APP_ID=your_app_id_here
 ```
+
+**To get these values:**
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Select your project or create a new one
+3. Go to Project Settings > General
+4. Scroll down to "Your apps" and select your web app
+5. Copy the configuration values to your `.env.local` file
+
+**Enable Google Authentication:**
+1. In Firebase Console, go to Authentication > Sign-in method
+2. Enable "Google" as a sign-in provider
+3. Add your domain to authorized domains if needed
 
 4. Start the development server:
 ```bash
