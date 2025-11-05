@@ -5,6 +5,7 @@ import { Badge } from './ui/badge';
 import { Alert, AlertDescription } from './ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Progress } from './ui/progress';
+import { SegmentationService } from '../services/segmentation';
 import { 
   Eye, 
   AlertTriangle, 
@@ -13,7 +14,6 @@ import {
   Brain, 
   Target,
   Download,
-  Maximize2,
   Info
 } from 'lucide-react';
 
@@ -21,10 +21,12 @@ export interface AnalysisResult {
   id: string;
   imageUrl: string;
   fileName: string;
+  file?: File; // Original file for PDF generation
   riskScore: number;
-  riskLevel: 'Benign' | 'Low Risk' | 'Medium Risk' | 'High Risk';
+  riskLevel: 'Safe' | 'Low Risk' | 'Medium Risk' | 'High Risk';
   confidence: number;
   heatmapUrl: string;
+  overlayUrl?: string; // Segmentation overlay from API
   limeExplanation: {
     summary: string;
     keyFeatures: Array<{
@@ -50,10 +52,28 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, onClo
     results.length > 0 ? results[0] : null
   );
   const [viewMode, setViewMode] = useState<'original' | 'heatmap' | 'overlay'>('original');
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownloadReport = async () => {
+    if (!selectedResult || !selectedResult.file) {
+      alert('Cannot generate report: Original file not available');
+      return;
+    }
+
+    setIsDownloading(true);
+    try {
+      await SegmentationService.downloadReport(selectedResult.file);
+    } catch (error) {
+      console.error('Failed to download report:', error);
+      alert('Failed to generate PDF report. Please ensure the backend server is running.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const getRiskColor = (riskLevel: string) => {
     switch (riskLevel) {
-      case 'Benign':
+      case 'Safe':
         return 'text-green-700 bg-green-100 border-green-200';
       case 'Low Risk':
         return 'text-blue-700 bg-blue-100 border-blue-200';
@@ -68,7 +88,7 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, onClo
 
   const getRiskIcon = (riskLevel: string) => {
     switch (riskLevel) {
-      case 'Benign':
+      case 'Safe':
         return <CheckCircle className="w-4 h-4" />;
       case 'Low Risk':
         return <Info className="w-4 h-4" />;
@@ -171,118 +191,214 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, onClo
                       <span>{selectedResult.fileName}</span>
                     </CardTitle>
                     <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleDownloadReport}
+                        disabled={isDownloading || !selectedResult.file}
+                      >
                         <Download className="w-4 h-4 mr-2" />
-                        Export
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Maximize2 className="w-4 h-4 mr-2" />
-                        Full Screen
+                        {isDownloading ? 'Generating...' : 'Download PDF Report'}
                       </Button>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Risk Summary */}
+                  {/* Segmentation Summary */}
                   <div className="grid md:grid-cols-3 gap-4">
-                    <Card className="border-blue-100">
+                    <Card className="border-blue-100 bg-gradient-to-br from-blue-50 to-white">
                       <CardContent className="p-4 text-center">
                         <div className="text-2xl font-bold text-blue-600">
                           {(selectedResult.riskScore * 100).toFixed(1)}%
                         </div>
-                        <div className="text-sm text-gray-600 mt-1">Risk Score</div>
+                        <div className="text-sm text-gray-600 mt-1">Polyp Coverage</div>
                         <Progress 
                           value={selectedResult.riskScore * 100} 
                           className="mt-2"
                         />
+                        <div className="text-xs text-gray-500 mt-1">
+                          Detected polyp area percentage
+                        </div>
                       </CardContent>
                     </Card>
 
-                    <Card className="border-blue-100">
+                    <Card className="border-blue-100 bg-gradient-to-br from-blue-50 to-white">
                       <CardContent className="p-4 text-center">
-                        <Badge className={`${getRiskColor(selectedResult.riskLevel)} text-base px-3 py-1`}>
+                        <Badge className={`${getRiskColor(selectedResult.riskLevel)} text-base px-3 py-1 shadow-sm`}>
                           {getRiskIcon(selectedResult.riskLevel)}
                           <span className="ml-1">{selectedResult.riskLevel}</span>
                         </Badge>
-                        <div className="text-sm text-gray-600 mt-2">Classification</div>
+                        <div className="text-sm text-gray-600 mt-2">Risk Level</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Based on segmentation
+                        </div>
                       </CardContent>
                     </Card>
 
-                    <Card className="border-blue-100">
+                    <Card className="border-blue-100 bg-gradient-to-br from-blue-50 to-white">
                       <CardContent className="p-4 text-center">
                         <div className="text-2xl font-bold text-green-600">
                           {(selectedResult.confidence * 100).toFixed(1)}%
                         </div>
-                        <div className="text-sm text-gray-600 mt-1">Confidence</div>
+                        <div className="text-sm text-gray-600 mt-1">Model Confidence</div>
                         <div className="text-xs text-gray-500 mt-1">
-                          {selectedResult.processingTime}ms
+                          Processing: {selectedResult.processingTime}ms
                         </div>
                       </CardContent>
                     </Card>
                   </div>
 
                   {/* Image Visualization */}
-                  <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)}>
-                    <TabsList className="grid w-full grid-cols-3">
-                      <TabsTrigger value="original">Original</TabsTrigger>
-                      <TabsTrigger value="heatmap">Heatmap</TabsTrigger>
-                      <TabsTrigger value="overlay">Overlay</TabsTrigger>
-                    </TabsList>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-gray-900">Visualization Views</h3>
+                      <div className="text-xs text-gray-500">
+                        <span className="font-medium">Overlay:</span> Segmentation mask blended with original image
+                        <span className="mx-2">•</span>
+                        <span className="font-medium">Heatmap:</span> Grad-CAM style attention visualization
+                      </div>
+                    </div>
+                    <Tabs value={viewMode} onValueChange={(value: string) => setViewMode(value as 'original' | 'heatmap' | 'overlay')}>
+                      <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="original">Original Image</TabsTrigger>
+                        <TabsTrigger value="overlay">Segmentation Overlay</TabsTrigger>
+                        <TabsTrigger value="heatmap">Grad-CAM Heatmap</TabsTrigger>
+                      </TabsList>
                     
                     <TabsContent value="original" className="mt-4">
-                      <div className="relative">
-                        <img
-                          src={selectedResult.imageUrl}
-                          alt="Original colonoscopy image"
-                          className="w-full h-64 md:h-96 object-contain rounded-lg border border-gray-200"
-                        />
+                      <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border border-gray-200">
+                        <div className="relative bg-white rounded-lg overflow-hidden shadow-lg">
+                          <img
+                            src={selectedResult.imageUrl}
+                            alt="Original colonoscopy image"
+                            className="w-full h-64 md:h-96 object-contain"
+                          />
+                          <div className="absolute top-3 left-3">
+                            <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 shadow-lg">
+                              <Eye className="w-3 h-3 mr-1" />
+                              Original Image
+                            </Badge>
+                          </div>
+                        </div>
                       </div>
                     </TabsContent>
                     
                     <TabsContent value="heatmap" className="mt-4">
-                      <div className="relative">
-                        <img
-                          src={selectedResult.heatmapUrl}
-                          alt="Grad-CAM heatmap"
-                          className="w-full h-64 md:h-96 object-contain rounded-lg border border-gray-200"
-                        />
-                        <div className="absolute top-2 left-2">
-                          <Badge className="bg-purple-100 text-purple-700 border-purple-200">
-                            <Brain className="w-3 h-3 mr-1" />
-                            Grad-CAM
-                          </Badge>
+                      <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border border-gray-200">
+                        <div className="mb-3 bg-purple-50 border border-purple-200 rounded-lg p-3">
+                          <div className="flex items-start space-x-2">
+                            <Info className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
+                            <div className="text-sm text-purple-800">
+                              <strong>Grad-CAM Heatmap:</strong> Medical-grade gradient visualization using JET colormap. 
+                              Deep red indicates high-confidence polyp regions (hot spots), smoothly transitioning through 
+                              orange and yellow (moderate attention), to green and blue (normal tissue). This continuous 
+                              gradient shows varying levels of model activation across the entire image.
+                            </div>
+                          </div>
+                        </div>
+                        <div className="relative bg-white rounded-lg overflow-hidden shadow-lg">
+                          <img
+                            src={selectedResult.heatmapUrl}
+                            alt="Grad-CAM Heatmap"
+                            className="w-full h-64 md:h-96 object-contain"
+                          />
+                          <div className="absolute top-3 left-3">
+                            <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 shadow-lg">
+                              <Brain className="w-3 h-3 mr-1" />
+                              Grad-CAM Heatmap
+                            </Badge>
+                          </div>
+                          <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-sm rounded-lg px-3 py-2">
+                            <div className="text-xs text-white font-medium">
+                              Color gradient shows attention intensity
+                            </div>
+                          </div>
+                        </div>
+                        {/* Color Legend */}
+                        <div className="mt-4 bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-gray-200">
+                          <div className="text-xs font-semibold text-gray-700 mb-2 text-center">Grad-CAM Intensity Legend</div>
+                          <div className="flex items-center justify-center space-x-3">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-5 h-5 bg-gradient-to-r from-red-700 to-red-600 rounded shadow-md"></div>
+                              <span className="text-xs font-medium text-gray-700">High</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <div className="w-5 h-5 bg-gradient-to-r from-orange-500 to-orange-400 rounded shadow-md"></div>
+                              <span className="text-xs font-medium text-gray-700">Medium-High</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <div className="w-5 h-5 bg-gradient-to-r from-yellow-400 to-yellow-300 rounded shadow-md"></div>
+                              <span className="text-xs font-medium text-gray-700">Medium</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <div className="w-5 h-5 bg-gradient-to-r from-lime-400 to-lime-300 rounded shadow-md"></div>
+                              <span className="text-xs font-medium text-gray-700">Low</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <div className="w-5 h-5 bg-gradient-to-r from-green-400 to-green-300 rounded shadow-md"></div>
+                              <span className="text-xs font-medium text-gray-700">Normal</span>
+                            </div>
+                          </div>
+                          <div className="mt-3 text-xs text-center text-gray-600 bg-blue-50 rounded px-3 py-2 border border-blue-200">
+                            <strong>Risk Classification:</strong> High Risk (&gt;2%) • Medium Risk (0.5-2%) • Safe (&lt;0.5%)
+                          </div>
                         </div>
                       </div>
                     </TabsContent>
                     
                     <TabsContent value="overlay" className="mt-4">
-                      <div className="relative">
-                        <img
-                          src={selectedResult.imageUrl}
-                          alt="Original with overlay"
-                          className="w-full h-64 md:h-96 object-contain rounded-lg border border-gray-200"
-                        />
-                        <img
-                          src={selectedResult.heatmapUrl}
-                          alt="Heatmap overlay"
-                          className="absolute inset-0 w-full h-full object-contain rounded-lg opacity-60 mix-blend-multiply"
-                        />
-                        <div className="absolute top-2 left-2">
-                          <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">
-                            <Eye className="w-3 h-3 mr-1" />
-                            Overlay View
-                          </Badge>
+                      <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border border-gray-200">
+                        <div className="mb-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                          <div className="flex items-start space-x-2">
+                            <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                            <div className="text-sm text-blue-800">
+                              <strong>Segmentation Overlay:</strong> Shows the binary segmentation mask (red regions) 
+                              directly overlaid on the original image. This highlights exactly which pixels the model 
+                              identified as potential polyp/cancer regions.
+                            </div>
+                          </div>
+                        </div>
+                        <div className="relative bg-white rounded-lg overflow-hidden shadow-lg">
+                          <img
+                            src={selectedResult.imageUrl}
+                            alt="Original image"
+                            className="w-full h-64 md:h-96 object-contain"
+                          />
+                          <img
+                            src={selectedResult.overlayUrl || selectedResult.heatmapUrl}
+                            alt="Segmentation overlay"
+                            className="absolute inset-0 w-full h-full object-contain opacity-60 mix-blend-multiply"
+                            style={{ filter: 'brightness(1.1) contrast(1.2)' }}
+                          />
+                          <div className="absolute top-3 left-3">
+                            <Badge className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-0 shadow-lg">
+                              <Eye className="w-3 h-3 mr-1" />
+                              Segmentation Overlay
+                            </Badge>
+                          </div>
+                          <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-sm rounded-lg px-3 py-2">
+                            <div className="text-xs text-white font-medium">
+                              Red regions = Model predictions
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-4 flex items-center justify-center space-x-4 bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-gray-200">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                            <span className="text-xs text-gray-700 font-medium">Detected polyp regions (binary mask)</span>
+                          </div>
                         </div>
                       </div>
                     </TabsContent>
                   </Tabs>
+                  </div>
 
-                  {/* LIME Explanation */}
-                  <Card className="border-green-100">
+                  {/* Segmentation Explanation */}
+                  <Card className="border-green-100 bg-gradient-to-br from-green-50 to-white">
                     <CardHeader>
                       <CardTitle className="flex items-center space-x-2">
                         <Brain className="w-5 h-5 text-green-600" />
-                        <span>AI Explanation (LIME)</span>
+                        <span>Segmentation Analysis</span>
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
