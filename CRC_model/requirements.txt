@@ -1,0 +1,21 @@
+# Training Dependencies
+torch>=1.12
+torchvision
+timm
+segmentation-models-pytorch
+albumentations
+opencv-python
+matplotlib
+scikit-learn
+tensorboard
+tqdm
+pandas
+
+# API Dependencies
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+python-multipart>=0.0.6
+onnxruntime>=1.15.0
+numpy>=1.24.0
+pillow>=10.0.0
+reportlab>=4.0.0  # PDF report generation

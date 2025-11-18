@@ -17,15 +17,27 @@ interface ImageUploadProps {
   onImagesChange: (images: UploadedImage[]) => void;
   maxImages?: number;
   maxSizeMB?: number;
+  resetKey?: number; // Add reset key to force reset
 }
 
 export const ImageUpload: React.FC<ImageUploadProps> = ({ 
   onImagesChange, 
   maxImages = 10, 
-  maxSizeMB = 5 
+  maxSizeMB = 5,
+  resetKey = 0
 }) => {
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
+
+  // Reset images when resetKey changes
+  React.useEffect(() => {
+    if (resetKey > 0) {
+      images.forEach(img => URL.revokeObjectURL(img.url));
+      setImages([]);
+      onImagesChange([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetKey]);
 
   const validateFile = (file: File): string | null => {
     const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
@@ -54,16 +66,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       progress: 0
     };
 
-    // Simulate upload progress
-    const progressInterval = setInterval(() => {
-      uploadedImage.progress += Math.random() * 30;
-      if (uploadedImage.progress >= 100) {
-        uploadedImage.progress = 100;
-        uploadedImage.status = 'ready';
-        clearInterval(progressInterval);
-      }
-    }, 200);
-
+    // Return immediately with uploading status
+    // The progress will be updated via state in handleFiles
     return uploadedImage;
   };
 
@@ -92,9 +96,43 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       }
     }
 
+    // Add new images with uploading status
     const updatedImages = [...images, ...newImages];
     setImages(updatedImages);
     onImagesChange(updatedImages);
+
+    // Simulate upload progress for each new image
+    newImages.forEach((img) => {
+      let progress = 0;
+      const progressInterval = setInterval(() => {
+        progress += Math.random() * 30 + 10;
+        if (progress >= 100) {
+          progress = 100;
+          // Update status to ready
+          setImages(prevImages => {
+            const updated = prevImages.map(image => 
+              image.id === img.id 
+                ? { ...image, progress: 100, status: 'ready' as const }
+                : image
+            );
+            onImagesChange(updated);
+            return updated;
+          });
+          clearInterval(progressInterval);
+        } else {
+          // Update progress
+          setImages(prevImages => {
+            const updated = prevImages.map(image => 
+              image.id === img.id 
+                ? { ...image, progress }
+                : image
+            );
+            onImagesChange(updated);
+            return updated;
+          });
+        }
+      }, 200);
+    });
   }, [images, maxImages, onImagesChange]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
