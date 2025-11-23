@@ -8,7 +8,7 @@ import { ImageUpload } from './ImageUpload';
 import { AnalysisResults, AnalysisResult } from './AnalysisResults';
 import { useRouter, useAuth } from '../routes/Router';
 import { AuthService } from '../services/auth';
-import { SegmentationService } from '../services/segmentation';
+import { SegmentationService, Recommendation } from '../services/segmentation';
 import { 
   Eye, 
   LogOut, 
@@ -364,7 +364,7 @@ export const DetectionPage: React.FC = () => {
               cancerPercentage > 0.1 ? 'Low Risk' : 'Safe';
             
             // Get AI-generated recommendations
-            let recommendations;
+            let recommendations: Recommendation[];
             try {
               recommendations = await SegmentationService.getRecommendations(
                 riskLevel,
@@ -375,12 +375,12 @@ export const DetectionPage: React.FC = () => {
               console.error('Failed to get AI recommendations, using fallback:', error);
               // Fallback to hardcoded recommendations if AI fails
               recommendations = polypDetected ? [
-                { type: 'urgent', text: 'Schedule consultation with an oncologist for further evaluation' },
-                { type: 'urgent', text: 'Biopsy recommended for histopathological confirmation' },
-                { type: 'monitoring', text: 'Close monitoring with follow-up imaging' }
+                { type: 'urgent' as const, text: 'Schedule consultation with an oncologist for further evaluation' },
+                { type: 'urgent' as const, text: 'Biopsy recommended for histopathological confirmation' },
+                { type: 'monitoring' as const, text: 'Close monitoring with follow-up imaging' }
               ] : [
-                { type: 'routine', text: 'Monitor during next routine screening' },
-                { type: 'routine', text: 'Continue standard screening interval' }
+                { type: 'routine' as const, text: 'Monitor during next routine screening' },
+                { type: 'routine' as const, text: 'Continue standard screening interval' }
               ];
             }
             
