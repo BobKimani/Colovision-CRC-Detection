@@ -1,9 +1,10 @@
 # Virtual environments
+CRC/
 .venv/
 venv/
+env/
+ENV/
 CRC_model/CRC/
-CRC_model/__pycache__/
-CRC_model/**/__pycache__/
 
 # Python cache
 __pycache__/
@@ -12,13 +13,37 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.so
 
 # Environment variables
 .env
+.env.local
 
 # Build artifacts
 build/
+dist/
+*.egg-info/
+
+# Node modules
 node_modules/
 
 # DynamoDB Local files
 .dynamodb/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Logs
+*.log

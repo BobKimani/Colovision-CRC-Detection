@@ -3,10 +3,11 @@ FastAPI application for CRC segmentation inference.
 Handles image uploads, preprocessing, inference, and postprocessing.
 """
 
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
-from typing import List, Dict
+from typing import List, Dict, Optional
+from pydantic import BaseModel
 import asyncio
 from pathlib import Path
 import base64
@@ -16,6 +17,7 @@ from predict import CRCSegmentationModel
 from preprocessing import preprocess_image
 from postprocessing import create_overlay, create_gradcam_overlay, get_mask_statistics
 from report_generator import create_report
+from llm_service import RecommendationService
 
 # Initialize FastAPI app
 app = FastAPI(title="CRC Segmentation API", version="1.0.0")
@@ -37,19 +39,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize model (loaded once at startup)
+# Initialize model and recommendation service (loaded once at startup)
 model = None
+recommendation_service = None
 
 @app.on_event("startup")
 async def load_model():
-    """Load the ONNX model once at application startup."""
-    global model
+    """Load the ONNX model and recommendation service once at application startup."""
+    global model, recommendation_service
     try:
         model = CRCSegmentationModel()
         print("✅ CRC Segmentation model loaded successfully")
     except Exception as e:
         print(f"❌ Failed to load model: {e}")
         raise
+    
+    # Initialize recommendation service (with fallback if API key not available)
+    try:
+        recommendation_service = RecommendationService()
+        print("✅ AI Recommendation service loaded successfully")
+    except Exception as e:
+        print(f"⚠️  Warning: AI Recommendation service not available: {e}")
+        print("   Falling back to hardcoded recommendations")
+        recommendation_service = None
 
 @app.get("/")
 async def root():
@@ -156,6 +168,35 @@ async def segment_single(file: UploadFile = File(...)):
     result = await segment_images([file])
     return result
 
+class RecommendationRequest(BaseModel):
+    risk_level: str
+    cancer_percentage: float
+    statistics: Optional[Dict] = None
+
+@app.post("/get-recommendations")
+async def get_recommendations_endpoint(request: RecommendationRequest):
+    """
+    Get AI-generated clinical recommendations based on analysis results.
+    
+    Args:
+        request: JSON body with risk_level, cancer_percentage, and optional statistics
+        
+    Returns:
+        JSON response with recommendations list
+    """
+    try:
+        recommendations = await get_recommendations(
+            request.risk_level, 
+            request.cancer_percentage, 
+            request.statistics
+        )
+        return JSONResponse(content={
+            "status": "success",
+            "recommendations": recommendations
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate recommendations: {str(e)}")
+
 def calculate_risk_level(cancer_percentage: float) -> str:
     """Calculate risk level based on polyp coverage."""
     if cancer_percentage > 2.0:
@@ -166,8 +207,22 @@ def calculate_risk_level(cancer_percentage: float) -> str:
         return 'Low Risk'
     return 'Safe'
 
-def get_recommendations(risk_level: str) -> List[Dict[str, str]]:
-    """Get clinical recommendations based on risk level."""
+async def get_recommendations(risk_level: str, cancer_percentage: float, statistics: dict = None) -> List[Dict[str, str]]:
+    """Get AI-generated clinical recommendations, with fallback to hardcoded recommendations."""
+    # Try to use AI recommendations if service is available
+    if recommendation_service:
+        try:
+            return await asyncio.to_thread(
+                recommendation_service.generate_recommendations,
+                risk_level=risk_level,
+                cancer_percentage=cancer_percentage,
+                statistics=statistics
+            )
+        except Exception as e:
+            print(f"⚠️  Error generating AI recommendations: {e}")
+            print("   Falling back to hardcoded recommendations")
+    
+    # Fallback to hardcoded recommendations
     if risk_level in ['High Risk', 'Medium Risk']:
         return [
             {'type': 'urgent', 'text': 'Schedule consultation with an oncologist for further evaluation'},
@@ -215,8 +270,8 @@ async def generate_report(file: UploadFile = File(...)):
         # Calculate risk level
         risk_level = calculate_risk_level(cancer_percentage)
         
-        # Get recommendations
-        recommendations = get_recommendations(risk_level)
+        # Get AI-generated recommendations
+        recommendations = await get_recommendations(risk_level, cancer_percentage, mask_stats)
         
         # Convert images to base64
         original_buffer = io.BytesIO()

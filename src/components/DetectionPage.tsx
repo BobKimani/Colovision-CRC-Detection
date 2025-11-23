@@ -363,6 +363,27 @@ export const DetectionPage: React.FC = () => {
               cancerPercentage > 0.5 ? 'Medium Risk' :
               cancerPercentage > 0.1 ? 'Low Risk' : 'Safe';
             
+            // Get AI-generated recommendations
+            let recommendations;
+            try {
+              recommendations = await SegmentationService.getRecommendations(
+                riskLevel,
+                cancerPercentage,
+                apiResult.statistics
+              );
+            } catch (error) {
+              console.error('Failed to get AI recommendations, using fallback:', error);
+              // Fallback to hardcoded recommendations if AI fails
+              recommendations = polypDetected ? [
+                { type: 'urgent', text: 'Schedule consultation with an oncologist for further evaluation' },
+                { type: 'urgent', text: 'Biopsy recommended for histopathological confirmation' },
+                { type: 'monitoring', text: 'Close monitoring with follow-up imaging' }
+              ] : [
+                { type: 'routine', text: 'Monitor during next routine screening' },
+                { type: 'routine', text: 'Continue standard screening interval' }
+              ];
+            }
+            
             // Convert API response to AnalysisResult format for segmentation
             result = {
               id: image.id,
@@ -405,14 +426,7 @@ export const DetectionPage: React.FC = () => {
                   }
                 ]
               },
-              recommendations: polypDetected ? [
-                { type: 'urgent', text: 'Schedule consultation with an oncologist for further evaluation' },
-                { type: 'urgent', text: 'Biopsy recommended for histopathological confirmation' },
-                { type: 'monitoring', text: 'Close monitoring with follow-up imaging' }
-              ] : [
-                { type: 'routine', text: 'Monitor during next routine screening' },
-                { type: 'routine', text: 'Continue standard screening interval' }
-              ],
+              recommendations,
               processingTime: 1500
             };
           } else {

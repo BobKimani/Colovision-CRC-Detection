@@ -19,3 +19,5 @@ onnxruntime>=1.15.0
 numpy>=1.24.0
 pillow>=10.0.0
 reportlab>=4.0.0  # PDF report generation
+openai>=1.0.0  # OpenAI API for AI recommendations
+python-dotenv>=1.0.0  # Environment variable management
