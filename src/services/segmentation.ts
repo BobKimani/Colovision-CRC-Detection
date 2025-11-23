@@ -31,6 +31,16 @@ export interface SegmentationResponse {
   total_processed: number;
 }
 
+export interface Recommendation {
+  type: 'routine' | 'monitoring' | 'urgent';
+  text: string;
+}
+
+export interface RecommendationResponse {
+  status: string;
+  recommendations: Recommendation[];
+}
+
 export class SegmentationService {
   /**
    * Check if the API is available.
@@ -149,6 +159,87 @@ export class SegmentationService {
         })),
         total_processed: 0,
       };
+    }
+  }
+
+  /**
+   * Validate if an image is a colonoscopy image.
+   */
+  static async validateImage(file: File): Promise<{ valid: boolean; message?: string; reason?: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/validate-image`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+      
+      if (response.ok && data.status === 'valid') {
+        return { valid: true, message: data.message };
+      } else {
+        return { 
+          valid: false, 
+          message: data.message || 'Image validation failed',
+          reason: data.reason 
+        };
+      }
+    } catch (error) {
+      console.error('Image validation error:', error);
+      // If validation endpoint is not available, allow the image (graceful degradation)
+      return { valid: true, message: 'Validation service unavailable' };
+    }
+  }
+
+  /**
+   * Get AI-generated clinical recommendations based on analysis results.
+   */
+  static async getRecommendations(
+    riskLevel: string,
+    cancerPercentage: number,
+    statistics?: SegmentationStatistics
+  ): Promise<Recommendation[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/get-recommendations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          risk_level: riskLevel,
+          cancer_percentage: cancerPercentage,
+          statistics: statistics || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.statusText}`);
+      }
+
+      const data: RecommendationResponse = await response.json();
+      
+      if (data.recommendations && data.recommendations.length > 0) {
+        return data.recommendations;
+      }
+      
+      throw new Error('No recommendations returned from API');
+    } catch (error) {
+      console.error('Recommendation generation error:', error);
+      // Fallback to hardcoded recommendations
+      if (riskLevel === 'High Risk' || riskLevel === 'Medium Risk') {
+        return [
+          { type: 'urgent', text: 'Schedule consultation with an oncologist for further evaluation' },
+          { type: 'urgent', text: 'Biopsy recommended for histopathological confirmation' },
+          { type: 'monitoring', text: 'Close monitoring with follow-up imaging' }
+        ];
+      } else {
+        return [
+          { type: 'routine', text: 'Monitor during next routine screening' },
+          { type: 'routine', text: 'Continue standard screening interval' }
+        ];
+      }
     }
   }
 }
