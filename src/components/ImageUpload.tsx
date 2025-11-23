@@ -4,6 +4,7 @@ import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { Upload, X, Image as ImageIcon, AlertCircle } from 'lucide-react';
+import { SegmentationService } from '../services/segmentation';
 
 interface UploadedImage {
   id: string;
@@ -101,9 +102,35 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     setImages(updatedImages);
     onImagesChange(updatedImages);
 
-    // Simulate upload progress for each new image
-    newImages.forEach((img) => {
+    // Validate and simulate upload progress for each new image
+    newImages.forEach(async (img) => {
       let progress = 0;
+      
+      // First, validate the image
+      try {
+        const validation = await SegmentationService.validateImage(img.file);
+        
+        if (!validation.valid) {
+          // Image failed validation - mark as error
+          setImages(prevImages => {
+            const updated = prevImages.map(image => 
+              image.id === img.id 
+                ? { ...image, progress: 100, status: 'error' as const }
+                : image
+            );
+            onImagesChange(updated);
+            return updated;
+          });
+          alert(`${img.file.name}: ${validation.message || 'Not a colonoscopy image'}`);
+          return;
+        }
+      } catch (error) {
+        console.error('Validation error:', error);
+        // If validation fails due to network error, still allow the image
+        // (graceful degradation - backend will validate during processing)
+      }
+      
+      // Image passed validation - simulate upload progress
       const progressInterval = setInterval(() => {
         progress += Math.random() * 30 + 10;
         if (progress >= 100) {

@@ -509,7 +509,7 @@ export const DetectionPage: React.FC = () => {
             
             <div className="flex items-center space-x-4">
               <div className="text-sm text-gray-600">
-                Welcome, <span className="font-medium">{user.email}</span>
+                Welcome, <span className="font-medium">{user.email?.split('@')[0] || 'User'}</span>
               </div>
               <Button 
                 variant="outline" 

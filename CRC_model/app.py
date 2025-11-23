@@ -18,6 +18,7 @@ from preprocessing import preprocess_image
 from postprocessing import create_overlay, create_gradcam_overlay, get_mask_statistics
 from report_generator import create_report
 from llm_service import RecommendationService
+from image_validation import validate_image_bytes
 
 # Initialize FastAPI app
 app = FastAPI(title="CRC Segmentation API", version="1.0.0")
@@ -105,6 +106,19 @@ async def segment_images(files: List[UploadFile] = File(...)):
             # Read image file
             image_bytes = await file.read()
             
+            # Validate colonoscopy image
+            is_valid, reason = validate_image_bytes(image_bytes)
+            if not is_valid:
+                print(f"❌ Image failed colonoscopy validation: reason = {reason}")
+                results.append({
+                    "filename": file.filename,
+                    "status": "error",
+                    "error": f"Invalid image. Please upload a colonoscopy image. ({reason})"
+                })
+                continue
+            
+            print(f"✔ Image passed colonoscopy validation: {file.filename}")
+            
             # Preprocess image
             original_img, preprocessed_tensor = preprocess_image(image_bytes)
             
@@ -167,6 +181,48 @@ async def segment_single(file: UploadFile = File(...)):
     """
     result = await segment_images([file])
     return result
+
+@app.post("/validate-image")
+async def validate_image(file: UploadFile = File(...)):
+    """
+    Validate if an uploaded image is a colonoscopy image.
+    This endpoint can be called immediately after upload to reject non-colonoscopy images.
+    
+    Args:
+        file: Uploaded image file
+        
+    Returns:
+        JSON response with validation result
+    """
+    try:
+        image_bytes = await file.read()
+        is_valid, reason = validate_image_bytes(image_bytes)
+        
+        if is_valid:
+            return JSONResponse(content={
+                "status": "valid",
+                "message": "Image passed colonoscopy validation",
+                "filename": file.filename
+            })
+        else:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "status": "invalid",
+                    "message": f"Invalid image. Please upload a colonoscopy image. ({reason})",
+                    "reason": reason,
+                    "filename": file.filename
+                }
+            )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "error",
+                "message": f"Validation failed: {str(e)}",
+                "filename": file.filename
+            }
+        )
 
 class RecommendationRequest(BaseModel):
     risk_level: str
@@ -252,6 +308,18 @@ async def generate_report(file: UploadFile = File(...)):
     try:
         # Read and process image
         image_bytes = await file.read()
+        
+        # Validate colonoscopy image
+        is_valid, reason = validate_image_bytes(image_bytes)
+        if not is_valid:
+            print(f"❌ Image failed colonoscopy validation: reason = {reason}")
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid image. Please upload a colonoscopy image. ({reason})"
+            )
+        
+        print(f"✔ Image passed colonoscopy validation: {file.filename}")
+        
         original_img, preprocessed_tensor = preprocess_image(image_bytes)
         
         # Run inference

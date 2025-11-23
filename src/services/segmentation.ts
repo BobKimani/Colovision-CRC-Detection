@@ -163,6 +163,37 @@ export class SegmentationService {
   }
 
   /**
+   * Validate if an image is a colonoscopy image.
+   */
+  static async validateImage(file: File): Promise<{ valid: boolean; message?: string; reason?: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/validate-image`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+      
+      if (response.ok && data.status === 'valid') {
+        return { valid: true, message: data.message };
+      } else {
+        return { 
+          valid: false, 
+          message: data.message || 'Image validation failed',
+          reason: data.reason 
+        };
+      }
+    } catch (error) {
+      console.error('Image validation error:', error);
+      // If validation endpoint is not available, allow the image (graceful degradation)
+      return { valid: true, message: 'Validation service unavailable' };
+    }
+  }
+
+  /**
    * Get AI-generated clinical recommendations based on analysis results.
    */
   static async getRecommendations(
