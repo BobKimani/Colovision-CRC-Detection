@@ -109,11 +109,11 @@ async def segment_images(files: List[UploadFile] = File(...)):
             # Validate colonoscopy image
             is_valid, reason = validate_image_bytes(image_bytes)
             if not is_valid:
-                print(f"❌ Image failed colonoscopy validation: reason = {reason}")
+                print("Invalid image, please upload a colonoscopy image")
                 results.append({
                     "filename": file.filename,
                     "status": "error",
-                    "error": f"Invalid image. Please upload a colonoscopy image. ({reason})"
+                    "error": "Invalid image, please upload a colonoscopy image"
                 })
                 continue
             
@@ -205,12 +205,12 @@ async def validate_image(file: UploadFile = File(...)):
                 "filename": file.filename
             })
         else:
+            print("Invalid image, please upload a colonoscopy image")
             return JSONResponse(
                 status_code=400,
                 content={
                     "status": "invalid",
-                    "message": f"Invalid image. Please upload a colonoscopy image. ({reason})",
-                    "reason": reason,
+                    "message": "Invalid image, please upload a colonoscopy image",
                     "filename": file.filename
                 }
             )
@@ -312,10 +312,10 @@ async def generate_report(file: UploadFile = File(...)):
         # Validate colonoscopy image
         is_valid, reason = validate_image_bytes(image_bytes)
         if not is_valid:
-            print(f"❌ Image failed colonoscopy validation: reason = {reason}")
+            print("Invalid image, please upload a colonoscopy image")
             raise HTTPException(
                 status_code=400, 
-                detail=f"Invalid image. Please upload a colonoscopy image. ({reason})"
+                detail="Invalid image, please upload a colonoscopy image"
             )
         
         print(f"✔ Image passed colonoscopy validation: {file.filename}")
