@@ -11,9 +11,9 @@ This bundle focuses on frontend UX and flows. All auth and analysis are mocked a
 ## Tech stack
 - Vite + React 18 (SWC) – app scaffold and dev server
 - TypeScript – type safety
-- Radix UI primitives and custom UI components (in `src/components/ui`) + Tailwind-like utility classes (via `src/styles/globals.css`)
+- Radix UI primitives and custom UI components (in `frontend/src/components/ui`) + Tailwind-like utility classes (via `frontend/src/styles/globals.css`)
 - Lucide icons for visuals
-- Hash-based custom router (no `react-router`): see `src/components/Router.tsx`
+- Hash-based custom router (no `react-router`): see `frontend/src/routes/Router.tsx`
 
 ## Key capabilities
 - Landing page marketing surface (`LandingPage`)
@@ -24,14 +24,14 @@ This bundle focuses on frontend UX and flows. All auth and analysis are mocked a
   - Privacy notice: images are processed in-browser; nothing is uploaded
 
 ## How routing works
-- Routes are defined in `src/routes/index.tsx` and rendered by `src/components/Router.tsx`
+- Routes are defined in `frontend/src/routes/index.tsx` and rendered by `frontend/src/routes/Router.tsx`
 - Navigation uses URL hash (e.g., `#/login`); simple auth guards redirect to `/login` for protected routes
 - Public routes: `/`, `/login`, `/signup`; Protected: `/detection`; 2FA intermediates: `/2fa-setup`, `/2fa-verify`
 
 ## Project structure (high level)
-- `src/App.tsx` – mounts the custom router with route config
-- `src/main.tsx` – Vite entry, mounts React root
-- `src/components/` – pages and UI blocks
+- `frontend/src/App.tsx` – mounts the custom router with route config
+- `frontend/src/main.tsx` – Vite entry, mounts React root
+- `frontend/src/components/` – pages and UI blocks
   - `LandingPage.tsx` – marketing/overview
   - `LoginPage.tsx`, `SignupPage.tsx` – auth forms
   - `TwoFactorAuth.tsx` – 2FA setup/verify screen
@@ -39,12 +39,12 @@ This bundle focuses on frontend UX and flows. All auth and analysis are mocked a
   - `AnalysisResults.tsx` – detailed results visualization
   - `ImageUpload.tsx` – drag-and-drop file intake (referenced by detection flow)
   - `ui/` – reusable UI primitives (button, card, input, tabs, etc.)
-- `src/backend/` – mock services and types
+- `frontend/src/services/` – frontend services and types
   - `auth.ts` – `AuthService` and session types, `localStorage`-backed session
   - `twoFactor.ts` – `TwoFactorService`, QR URL generation, mock verification and backup codes
   - `index.ts` – service exports
-- `src/routes/` – route maps (lazy-loaded pages)
-- `src/styles/globals.css` – design tokens, themes, and base styles
+- `frontend/src/routes/` – route maps (lazy-loaded pages)
+- `frontend/src/styles/globals.css` – design tokens, themes, and base styles
 
 ## Data and security model (demo)
 - Sessions and 2FA state are stored in `localStorage` under namespaced keys
@@ -53,9 +53,10 @@ This bundle focuses on frontend UX and flows. All auth and analysis are mocked a
 - No real networking, encryption, HIPAA/FDA compliance or persistence is provided; texts mention these as part of the UX copy only
 
 ## Getting started
-1. Install dependencies: `npm install`
-2. Start dev server: `npm run dev`
-3. Open the app (Vite opens on port 3000 by default per `vite.config.ts`)
+1. Change into the frontend: `cd frontend`
+2. Install dependencies: `npm install`
+3. Start dev server: `npm run dev`
+4. Open the app (Vite opens on port 3000 by default per `vite.config.ts`)
 
 Login notes (demo):
 - Any email/password passes basic client-side validation; new emails go through 2FA setup, existing ones to 2FA verification.

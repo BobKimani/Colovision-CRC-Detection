@@ -3,7 +3,7 @@
  * Handles communication with the FastAPI backend.
  */
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 export interface SegmentationStatistics {
   total_pixels: number;
@@ -243,4 +243,3 @@ export class SegmentationService {
     }
   }
 }
-

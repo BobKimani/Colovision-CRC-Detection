@@ -1,5 +1,5 @@
 {
-      "name": "ColoVision Web Application",
+      "name": "colovision-frontend",
       "version": "0.1.0",
       "private": true,
       "dependencies": {
