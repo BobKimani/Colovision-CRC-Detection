@@ -34,6 +34,7 @@ app.add_middleware(
         "http://localhost:5174",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
+        "https://colovision-crc-detection.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -383,4 +384,3 @@ async def generate_report(file: UploadFile = File(...)):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
