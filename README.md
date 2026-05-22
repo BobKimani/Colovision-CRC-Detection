@@ -51,13 +51,14 @@ git clone https://github.com/BobKimani/Colovision-CRC-Detection.git
 cd Colovision-CRC-Detection
 ```
 
-2. Install dependencies:
+2. Install frontend dependencies:
 ```bash
+cd frontend
 npm install
 ```
 
 3. Set up Firebase environment variables:
-Create a `.env.local` file in the root directory with your Firebase configuration:
+Create a `.env.local` file in the `frontend` directory, or use the root `.env` file for local development, with your Firebase configuration:
 ```bash
 # Firebase Configuration
 VITE_FIREBASE_API_KEY=your_api_key_here
@@ -65,6 +66,7 @@ VITE_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=your_project_id
 VITE_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
 VITE_FIREBASE_APP_ID=your_app_id_here
+VITE_API_BASE_URL=http://localhost:8000
 ```
 
 **To get these values:**
@@ -73,6 +75,8 @@ VITE_FIREBASE_APP_ID=your_app_id_here
 3. Go to Project Settings > General
 4. Scroll down to "Your apps" and select your web app
 5. Copy the configuration values to your `.env.local` file
+
+For deployment, set `VITE_API_BASE_URL` to your deployed FastAPI backend URL.
 
 **Enable Google Authentication:**
 1. In Firebase Console, go to Authentication > Sign-in method
@@ -90,6 +94,7 @@ The frontend will be available at `http://localhost:3000`
 
 1. Navigate to the backend directory:
 ```bash
+# From the repository root
 cd CRC_model
 ```
 
@@ -131,20 +136,15 @@ The backend API will be available at `http://localhost:8000`
 
 ```
 ColoVision/
-├── src/                    # Frontend React application
-│   ├── components/         # React components
-│   │   ├── ui/            # Reusable UI components (Radix UI)
-│   │   ├── DetectionPage.tsx
-│   │   ├── AnalysisResults.tsx
-│   │   ├── LandingPage.tsx
-│   │   ├── LoginPage.tsx
-│   │   └── ...
-│   ├── routes/            # Routing configuration
-│   ├── services/          # API and authentication services
-│   │   ├── auth.ts        # Firebase authentication
-│   │   ├── segmentation.ts # API client for backend
-│   │   └── firebase.ts    # Firebase configuration
-│   └── styles/            # Global styles
+├── frontend/              # Frontend Vite/React application
+│   ├── src/               # React source code
+│   │   ├── components/    # React components
+│   │   ├── routes/        # Routing configuration
+│   │   ├── services/      # API and authentication services
+│   │   └── styles/        # Global styles
+│   ├── public/            # Static frontend assets
+│   ├── package.json       # Frontend dependencies and scripts
+│   └── vite.config.ts     # Frontend build/dev config
 │
 ├── CRC_model/             # Backend FastAPI application
 │   ├── app.py             # FastAPI main application
@@ -160,8 +160,7 @@ ColoVision/
 │   └── requirements.txt   # Python dependencies
 │
 ├── README.md              # This file
-├── technical.md          # Detailed technical documentation
-└── package.json          # Frontend dependencies
+└── technical.md           # Detailed technical documentation
 ```
 
 ## Features
@@ -223,8 +222,8 @@ For detailed API documentation, visit `http://localhost:8000/docs` when the back
 
 ### Frontend Issues
 - **Port already in use**: Change port in `vite.config.ts` or kill process on port 3000
-- **Firebase errors**: Ensure `.env.local` has correct Firebase configuration
-- **Build errors**: Clear `node_modules` and reinstall: `rm -rf node_modules && npm install`
+- **Firebase errors**: Ensure `frontend/.env.local` or the root `.env` has correct Firebase configuration
+- **Build errors**: From `frontend/`, clear dependencies and reinstall: `rm -rf node_modules && npm install`
 
 ### Backend Issues
 - **Model not found**: Ensure `CRC_model/model/crc_segmentation.onnx` exists
